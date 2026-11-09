@@ -1,0 +1,33 @@
+#!/bin/sh
+# Starts the service on configure only once LOCK_LOGGER_USER is set.
+set -e
+
+#DEBHELPER#
+
+DEFAULTS=/etc/default/lock-input-logger
+
+configured_user() {
+	[ -r "${DPKG_ROOT:-}$DEFAULTS" ] || return 0
+	sed -n 's/^[[:space:]]*LOCK_LOGGER_USER[[:space:]]*=//p' "${DPKG_ROOT:-}$DEFAULTS" \
+		| tail -n 1 | tr -d "\"'[:space:]"
+}
+
+case "$1" in
+	configure)
+		if [ -n "$(configured_user)" ]; then
+			if [ -z "${DPKG_ROOT:-}" ] && [ -d /run/systemd/system ]; then
+				deb-systemd-invoke start lock-input-logger.service >/dev/null || true
+			fi
+		else
+			echo "lock-input-logger: not started. Set LOCK_LOGGER_USER in $DEFAULTS, then run: systemctl start lock-input-logger"
+		fi
+		;;
+	abort-upgrade|abort-remove|abort-deconfigure|triggered)
+		;;
+	*)
+		echo "postinst called with unknown argument '$1'" >&2
+		exit 1
+		;;
+esac
+
+exit 0

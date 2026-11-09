@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+
+export CARGO_HOME = $(CURDIR)/debian/cargo-home
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release --locked
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	cargo test --release --locked
+endif
+
+override_dh_auto_install:
+	install -D -m 0755 target/release/lock-input-logger \
+		debian/lock-input-logger/usr/bin/lock-input-logger
+
+override_dh_installsystemd:
+	dh_installsystemd --no-start --restart-after-upgrade
+
+override_dh_auto_clean:
+	rm -rf target debian/cargo-home

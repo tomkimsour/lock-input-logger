@@ -1,0 +1,23 @@
+Source: lock-input-logger
+Section: admin
+Priority: optional
+Maintainer: Thomas Ung <thomas.ung.pro@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               cargo,
+               rustc (>= 1.85)
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: lock-input-logger
+Architecture: linux-any
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         systemd
+Description: log which input devices are active while the session is locked
+ Root service that follows the logind LockedHint of a user's seat0 session
+ and, only while it is locked, logs to the journal which input device
+ produced activity and of what coarse kind (typing, key repeat, media key,
+ button, pointer). Key codes are never recorded.
+ .
+ Set LOCK_LOGGER_USER in /etc/default/lock-input-logger, then restart the
+ service. Read the log with: journalctl -u lock-input-logger
