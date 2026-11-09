@@ -1,7 +1,6 @@
 /target/
-/arch/src/
-/arch/pkg/
-/arch/*.pkg.tar.*
+/result
+/result-*
 /debian/cargo-home/
 /debian/lock-input-logger/
 /debian/.debhelper/
