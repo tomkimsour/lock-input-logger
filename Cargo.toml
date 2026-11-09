@@ -2,6 +2,10 @@
 name = "lock-input-logger"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.89"
+description = "Log which input devices are active while the session is locked"
+license = "MIT"
+repository = "https://github.com/tomkimsour/lock-input-logger"
 
 [dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }

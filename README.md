@@ -29,7 +29,7 @@ Read the log with:
 journalctl -u lock-input-logger
 ```
 
-The user to watch is set with `LOCK_LOGGER_USER` (in `/etc/conf.d/lock-input-logger` on Arch, `/etc/default/lock-input-logger` on Debian). The service exits with status 2 and stays stopped while it is unset.
+The user to watch is set with `LOCK_LOGGER_USER`: the `services.lock-input-logger.user` option on NixOS, `/etc/default/lock-input-logger` on Debian. The service exits with status 2 and stays stopped while it is unset.
 
 ## Requirements
 
@@ -43,10 +43,103 @@ The user to watch is set with `LOCK_LOGGER_USER` (in `/etc/conf.d/lock-input-log
 
 ### Build
 
-- Rust 1.85 or newer with cargo (the crate uses edition 2024)
+- Rust 1.89 or newer with cargo
 - Network access to crates.io for the first build
 
 ### Packaging
 
-- Arch Linux: `base-devel` (for `makepkg`), x86_64
-- Debian: `dpkg-dev` and `debhelper` (compat level 13 or newer); Debian 13 (trixie) or newer for a recent enough `rustc`
+- NixOS: Nix with flakes enabled
+- Debian: `dpkg-dev` and `debhelper` (compat level 13 or newer), plus Rust 1.89 or newer from [rustup](https://rustup.rs), since Debian 13's `rustc` is too old
+
+## Installation
+
+### NixOS
+
+Add the flake as an input and enable the module:
+
+```nix
+{
+  inputs.lock-input-logger.url = "github:tomkimsour/lock-input-logger";
+
+  outputs = { nixpkgs, lock-input-logger, ... }: {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+        lock-input-logger.nixosModules.default
+        {
+          services.lock-input-logger = {
+            enable = true;
+            user = "your-login";
+          };
+        }
+      ];
+    };
+  };
+}
+```
+
+Apply with `sudo nixos-rebuild switch`. Removing the module (or setting `enable = false`) and rebuilding removes the service.
+
+| Option | Description |
+|---|---|
+| `services.lock-input-logger.enable` | Run the logger as a hardened root service |
+| `services.lock-input-logger.user` | Login name whose `seat0` session is watched (required) |
+| `services.lock-input-logger.package` | Package to use; defaults to this flake's package |
+
+The package alone is available as `lock-input-logger.packages.${system}.default`.
+
+### Debian and Ubuntu
+
+Download the `.deb` from the [latest release](https://github.com/tomkimsour/lock-input-logger/releases/latest) and install it:
+
+```
+sudo apt install ./lock-input-logger_*_amd64.deb
+```
+
+The service is enabled but only starts once the user is set:
+
+```
+sudo sed -i 's/^LOCK_LOGGER_USER=.*/LOCK_LOGGER_USER=your-login/' /etc/default/lock-input-logger
+sudo systemctl start lock-input-logger
+```
+
+Uninstall with `sudo apt remove lock-input-logger`, which stops the service. `sudo apt purge lock-input-logger` also removes its configuration.
+
+### From source
+
+On any other systemd distribution, build and install with make, run as your normal user (it calls `sudo` for the install steps):
+
+```
+make install
+```
+
+This builds the release binary, installs it to `/usr/local/bin`, installs the hardened unit to `/etc/systemd/system`, and enables and (re)starts the service watching your own login. Run it again after pulling changes to update. Remove everything with:
+
+```
+make uninstall
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `LOCK_LOGGER_USER` | `$SUDO_USER`, else `$USER` | Login whose session is watched |
+| `PREFIX` / `BINDIR` | `/usr/local` / `$(PREFIX)/bin` | Where the binary goes |
+| `UNITDIR` | `/etc/systemd/system` | Where the unit goes |
+
+Example: `make install LOCK_LOGGER_USER=alice`.
+
+## Releasing
+
+1. Bump the version in `Cargo.toml` and add a `debian/changelog` entry with the same version, then commit. The Nix package reads its version from `Cargo.toml`.
+2. Tag and push: `git tag v<version> && git push origin v<version>`.
+
+The `Release` workflow checks that both versions match the tag, runs clippy and the tests, builds the `.deb`, runs `nix flake check` (package build and a NixOS VM test of the module), and publishes a GitHub release with the `.deb`.
+
+## Development
+
+```
+cargo test
+nix flake check
+```
+
+`nix flake check` builds the package and runs a NixOS VM test that locks a session through logind, presses keys and checks the logged bursts. It needs KVM.
