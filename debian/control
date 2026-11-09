@@ -1,11 +1,12 @@
 Source: lock-input-logger
 Section: admin
 Priority: optional
-Maintainer: Thomas Ung <thomas.ung.pro@gmail.com>
+Maintainer: Thomas Ung <tomkimsour@gmail.com>
 Build-Depends: debhelper-compat (= 13),
                cargo,
-               rustc (>= 1.85)
+               rustc (>= 1.89)
 Standards-Version: 4.7.0
+Homepage: https://github.com/tomkimsour/lock-input-logger
 Rules-Requires-Root: no
 
 Package: lock-input-logger
