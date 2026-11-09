@@ -1,0 +1,15 @@
+[package]
+name = "lock-input-logger"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
+evdev = { version = "0.13", features = ["tokio"] }
+futures-util = { version = "0.3.34", default-features = false }
+logind-zbus = { version = "5", default-features = false }
+tokio = { version = "1.54.1", features = ["rt", "macros", "time", "sync"] }
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+
+[profile.release]
+strip = true

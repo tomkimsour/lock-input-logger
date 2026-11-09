@@ -1,0 +1,11 @@
+/target/
+/arch/src/
+/arch/pkg/
+/arch/*.pkg.tar.*
+/debian/cargo-home/
+/debian/lock-input-logger/
+/debian/.debhelper/
+/debian/debhelper-build-stamp
+/debian/files
+/debian/*.substvars
+/debian/*.debhelper.log
