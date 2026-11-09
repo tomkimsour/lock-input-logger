@@ -1,0 +1,26 @@
+[Unit]
+Description=Log which input devices are active while the session is locked
+After=systemd-logind.service dbus.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/conf.d/lock-input-logger
+ExecStart=/usr/bin/lock-input-logger
+Restart=on-failure
+RestartSec=5
+RestartPreventExitStatus=2
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+DevicePolicy=closed
+DeviceAllow=char-input r
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
