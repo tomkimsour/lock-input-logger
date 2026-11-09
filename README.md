@@ -108,11 +108,25 @@ Uninstall with `sudo apt remove lock-input-logger`, which stops the service. `su
 
 ### From source
 
+On any other systemd distribution, build and install with make, run as your normal user (it calls `sudo` for the install steps):
+
 ```
-cargo build --release
+make install
 ```
 
-The binary is `target/release/lock-input-logger`. It must run as root with `LOCK_LOGGER_USER` set; `lock-input-logger.service` is a hardened unit expecting it at `/usr/local/bin/lock-input-logger`.
+This builds the release binary, installs it to `/usr/local/bin`, installs the hardened unit to `/etc/systemd/system`, and enables and (re)starts the service watching your own login. Run it again after pulling changes to update. Remove everything with:
+
+```
+make uninstall
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `LOCK_LOGGER_USER` | `$SUDO_USER`, else `$USER` | Login whose session is watched |
+| `PREFIX` / `BINDIR` | `/usr/local` / `$(PREFIX)/bin` | Where the binary goes |
+| `UNITDIR` | `/etc/systemd/system` | Where the unit goes |
+
+Example: `make install LOCK_LOGGER_USER=alice`.
 
 ## Releasing
 

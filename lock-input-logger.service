@@ -4,10 +4,11 @@ After=systemd-logind.service dbus.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/lock-input-logger
-Environment=LOCK_LOGGER_USER=thomasung
+ExecStart=@BINDIR@/lock-input-logger
+Environment=LOCK_LOGGER_USER=@USER@
 Restart=on-failure
 RestartSec=5
+RestartPreventExitStatus=2
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
