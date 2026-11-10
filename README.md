@@ -2,7 +2,7 @@
 
 A small root daemon that records which input devices are active while your desktop session is locked.
 
-It follows the logind `LockedHint` of one user's `seat0` session. While the session is locked, it reads every keyboard, mouse, touchpad and media-key device (including Bluetooth AVRCP devices such as headphones that connect later) and writes one line per burst of activity to the systemd journal:
+It follows the logind `LockedHint` of one user's `seat0` session. While the session is locked, it reads every keyboard, mouse, touchpad and media-key device. This includes Bluetooth AVRCP devices, such as headphones that connect later. For each burst of activity, it writes one line to the systemd journal:
 
 ```
 LOCKED at 11:51:17
@@ -21,7 +21,7 @@ Each line gives the device name, the time range and a count per category:
 | `button` | mouse, touchpad and controller buttons |
 | `pointer` | pointer motion and touch movement |
 
-Key codes are never recorded, so the log cannot reveal what was typed. While the session is unlocked, nothing is logged. Devices are read without grabbing them, so the compositor and lock screen keep working normally.
+The logger never records key codes, so the log cannot reveal what was typed. While the session is unlocked, it logs nothing. It reads the devices without grabbing them, so the compositor and the lock screen keep working normally.
 
 Read the log with:
 
@@ -29,7 +29,7 @@ Read the log with:
 journalctl -u lock-input-logger
 ```
 
-The user to watch is set with `LOCK_LOGGER_USER`: the `services.lock-input-logger.user` option on NixOS, `/etc/default/lock-input-logger` on Debian. The service exits with status 2 and stays stopped while it is unset.
+`LOCK_LOGGER_USER` sets the user to watch. On NixOS, set it with the `services.lock-input-logger.user` option. On Debian, set it in `/etc/default/lock-input-logger`. While it is unset, the service exits with status 2 and stays stopped.
 
 ## Requirements
 
@@ -49,7 +49,7 @@ The user to watch is set with `LOCK_LOGGER_USER`: the `services.lock-input-logge
 ### Packaging
 
 - NixOS: Nix with flakes enabled
-- Debian: `dpkg-dev` and `debhelper` (compat level 13 or newer), plus Rust 1.89 or newer from [rustup](https://rustup.rs), since Debian 13's `rustc` is too old
+- Debian: `dpkg-dev` and `debhelper` (compat level 13 or newer). You also need Rust 1.89 or newer from [rustup](https://rustup.rs), because the `rustc` in Debian 13 is too old.
 
 ## Installation
 
@@ -79,13 +79,13 @@ Add the flake as an input and enable the module:
 }
 ```
 
-Apply with `sudo nixos-rebuild switch`. Removing the module (or setting `enable = false`) and rebuilding removes the service.
+To apply the change, run `sudo nixos-rebuild switch`. To remove the service, remove the module (or set `enable = false`) and rebuild.
 
 | Option | Description |
 |---|---|
 | `services.lock-input-logger.enable` | Run the logger as a hardened root service |
 | `services.lock-input-logger.user` | Login name whose `seat0` session is watched (required) |
-| `services.lock-input-logger.package` | Package to use; defaults to this flake's package |
+| `services.lock-input-logger.package` | Package to use (default: this flake's package) |
 
 The package alone is available as `lock-input-logger.packages.${system}.default`.
 
@@ -97,24 +97,31 @@ Download the `.deb` from the [latest release](https://github.com/tomkimsour/lock
 sudo apt install ./lock-input-logger_*_amd64.deb
 ```
 
-The service is enabled but only starts once the user is set:
+The package enables the service, but the service starts only after you set the user:
 
 ```
 sudo sed -i 's/^LOCK_LOGGER_USER=.*/LOCK_LOGGER_USER=your-login/' /etc/default/lock-input-logger
 sudo systemctl start lock-input-logger
 ```
 
-Uninstall with `sudo apt remove lock-input-logger`, which stops the service. `sudo apt purge lock-input-logger` also removes its configuration.
+To uninstall, run `sudo apt remove lock-input-logger`. This also stops the service. `sudo apt purge lock-input-logger` also removes the configuration.
 
 ### From source
 
-On any other systemd distribution, build and install with make, run as your normal user (it calls `sudo` for the install steps):
+On any other systemd distribution, build and install with make. Run it as your normal user. It calls `sudo` for the install steps.
 
 ```
 make install
 ```
 
-This builds the release binary, installs it to `/usr/local/bin`, installs the hardened unit to `/etc/systemd/system`, and enables and (re)starts the service watching your own login. Run it again after pulling changes to update. Remove everything with:
+This command:
+
+1. Builds the release binary.
+2. Installs the binary to `/usr/local/bin`.
+3. Installs the hardened unit to `/etc/systemd/system`.
+4. Enables and (re)starts the service, which watches your own login.
+
+To update after you pull changes, run `make install` again. To remove everything, run:
 
 ```
 make uninstall
@@ -130,10 +137,18 @@ Example: `make install LOCK_LOGGER_USER=alice`.
 
 ## Releasing
 
-1. Bump the version in `Cargo.toml` and add a `debian/changelog` entry with the same version, then commit. The Nix package reads its version from `Cargo.toml`.
-2. Tag and push: `git tag v<version> && git push origin v<version>`.
+1. Bump the version in `Cargo.toml`. The Nix package reads its version from this file.
+2. Add a `debian/changelog` entry with the same version.
+3. Commit the changes.
+4. Tag and push: `git tag v<version> && git push origin v<version>`.
 
-The `Release` workflow checks that both versions match the tag, runs clippy and the tests, builds the `.deb`, runs `nix flake check` (package build and a NixOS VM test of the module), and publishes a GitHub release with the `.deb`.
+The `Release` workflow then:
+
+1. Checks that the versions in `Cargo.toml` and `debian/changelog` match the tag.
+2. Runs clippy and the tests.
+3. Builds the `.deb`.
+4. Runs `nix flake check` (package build and a NixOS VM test of the module).
+5. Publishes a GitHub release with the `.deb`.
 
 ## Development
 
@@ -142,4 +157,4 @@ cargo test
 nix flake check
 ```
 
-`nix flake check` builds the package and runs a NixOS VM test that locks a session through logind, presses keys and checks the logged bursts. It needs KVM.
+`nix flake check` builds the package and runs a NixOS VM test. The test locks a session through logind, presses keys and checks the logged bursts. It needs KVM.
